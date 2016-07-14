@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+
 	avro "github.com/elodina/go-avro"
 )
 
@@ -42,11 +43,7 @@ type KafkaAvroEncoder struct {
 	schemaRegistry   SchemaRegistryClient
 }
 
-func NewKafkaAvroEncoder(url string) *KafkaAvroEncoder {
-	return NewKafkaAvroEncoderAuth(url, nil)
-}
-
-func NewKafkaAvroEncoderAuth(url string, auth *KafkaAvroAuth) *KafkaAvroEncoder {
+func CreatePrimitiveSchemas() map[string]avro.Schema {
 	primitiveSchemas := make(map[string]avro.Schema)
 	primitiveSchemas["Null"] = createPrimitiveSchema("null")
 	primitiveSchemas["Boolean"] = createPrimitiveSchema("boolean")
@@ -56,10 +53,21 @@ func NewKafkaAvroEncoderAuth(url string, auth *KafkaAvroAuth) *KafkaAvroEncoder 
 	primitiveSchemas["Double"] = createPrimitiveSchema("double")
 	primitiveSchemas["String"] = createPrimitiveSchema("string")
 	primitiveSchemas["Bytes"] = createPrimitiveSchema("bytes")
+	return primitiveSchemas
+}
 
+func NewKafkaAvroEncoder(url string) *KafkaAvroEncoder {
+	return NewKafkaAvroEncoderAuth(url, nil)
+}
+
+func NewKafkaAvroEncoderAuth(url string, auth *KafkaAvroAuth) *KafkaAvroEncoder {
+	return NewKafkaAvroEncoderWithSchemaRegistryClient(NewCachedSchemaRegistryClientAuth(url, auth))
+}
+
+func NewKafkaAvroEncoderWithSchemaRegistryClient(client SchemaRegistryClient) *KafkaAvroEncoder {
 	return &KafkaAvroEncoder{
-		schemaRegistry:   NewCachedSchemaRegistryClientAuth(url, auth),
-		primitiveSchemas: primitiveSchemas,
+		schemaRegistry:   client,
+		primitiveSchemas: CreatePrimitiveSchemas(),
 	}
 }
 
@@ -150,6 +158,12 @@ func NewKafkaAvroDecoder(url string) *KafkaAvroDecoder {
 func NewKafkaAvroDecoderAuth(url string, auth *KafkaAvroAuth) *KafkaAvroDecoder {
 	return &KafkaAvroDecoder{
 		schemaRegistry: NewCachedSchemaRegistryClientAuth(url, auth),
+	}
+}
+
+func NewKafkaAvroDecoderWithSchemaRegistryClient(client SchemaRegistryClient) *KafkaAvroDecoder {
+	return &KafkaAvroDecoder{
+		schemaRegistry: client,
 	}
 }
 
